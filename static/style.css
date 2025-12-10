@@ -1,0 +1,59 @@
+body{
+    background: #b87333; 
+    color: #000080;
+    }
+
+h1{
+    background: #b87333;
+    color: #000080;
+    font-size: 45px;
+    }
+
+h2{
+    background: #b87333;
+    color: #000080;
+    font-size: 35px;
+    }
+
+h3{
+    background: #b87333;
+    color: #000080;
+    font-size: 35px;
+    }
+
+h4{
+    background: #b87333;
+    color: #000080;
+    font-size: 35px;
+       }
+
+button{
+    color: black;
+    width: 100px;
+    height: 50px;
+    border: 2px solid #000080;
+    
+    }
+
+input[type=submit]{
+    width: 100px;
+    height: 50px;
+    border: 2px solid #000080;
+    }
+
+.start{
+    background: green;
+    color: black;
+    }
+
+.small-font{
+    font-size: 12px;
+    }
+
+.large-font{
+    font-size: 20px;
+    }
+
+.med-font{
+    font-size: 16px;
+    }
