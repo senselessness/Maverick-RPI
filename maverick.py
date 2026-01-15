@@ -3,6 +3,7 @@ import controls as C
 import sys
 import os
 import webbrowser
+import signal
 from threading import Timer
 
 app = Flask(__name__)
@@ -46,8 +47,10 @@ def Shutdown_Prep():
         C.writeControls()
         C.GPIO.cleanup()
         try:
-            func=request.environ.get('werkzeug.server.shutdown')
-            func()
+            own_pid=os.getpid()
+            os.kill(own_pid, signal.SIGINT)
+            #func=request.environ.get('werkzeug.server.shutdown')
+            #func()
             print("Exiting by Website\nReady For Power Off")
             #os.system("sudo shutdown -h now")
             
@@ -63,7 +66,8 @@ def open_browser():
 C.GPIO.setup(Shutdown, C.GPIO.IN, pull_up_down=C.GPIO.PUD_DOWN)
 C.GPIO.add_event_detect(Shutdown,C.GPIO.FALLING, callback=lambda x: Shutdown_Prep(), bouncetime=300)
 
+Timer(1,open_browser).start()
+ 
 #Disable Debug When Deployed
-if __name__=='__main__':
-    Timer(1,open_browser).start()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+#if __name__=='__main__':   
+    #app.run(debug=True, host='0.0.0.0', port=5000)
