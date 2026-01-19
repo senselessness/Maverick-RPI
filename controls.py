@@ -1,18 +1,20 @@
 import time
 import json
-import RPi.GPIO as GPIO
+import netifaces
+from gpiozero import Button, LED, DigitalInputDevice, DigitalOutputDevice
+from Display import writewords, LCDoff
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
 #BCM Pin Map To Current Output Pins
-ACVgate = 23
-ACVpump = 24
+ACVgate = LED(23)
+ACVpump = LED(24)
 
 #BCM Pin Map To Current Input Pins
-ACVstart = 17
-ACVflow = 27
-ACVstop = 22
+ACVstart = Button(17)
+ACVflow = DigitalInputDevice(27)
+ACVstop = Button(22)
 
+#Log Variables
+Access_Info=""
 
 JsonFile="Data.json"
 
@@ -69,8 +71,8 @@ except:
 #ACV Dispense Control
 #Add event must be within the function loop for the callback to work
 def acvFlow():
-        GPIO.output(ACVgate, GPIO.HIGH)
-        GPIO.output(ACVpump, GPIO.HIGH)
+        ACVpump.on()
+        ACVgate.on()
 
 #oilMix Control
 def oilMix():
@@ -114,22 +116,25 @@ def Stop_button(Variables):
             print ('Equipment Stopped')
         
 def StopACV():
-    GPIO.output(ACVpump,GPIO.LOW)
-    GPIO.output(ACVgate, GPIO.LOW)
+        ACVpump.off()
+        ACVgate.off()
     
 def StopOil():
     print('Oil Does Nothing At The Moment')
+    
+def peripherialsoff():
+    LCDoff()
 
-   
-#Map Outputs
-GPIO.setup(ACVgate, GPIO.OUT)
-GPIO.setup(ACVpump, GPIO.OUT)
+def getanddisplayconnect():
+    try:
+        address = netifaces.ifaddresses('wlan0')
+        ip_address = address[netifaces.AF_INET][0]['addr']
+        print (ip_address)
+    except:
+        print("Error Retrieving IP address")
+    
+getanddisplayconnect()
 
-#Map Inputs
-GPIO.setup(ACVstart, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(ACVflow, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(ACVstop, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-
-GPIO.add_event_detect(ACVstart,GPIO.FALLING, callback=lambda x: Start_button(ACVDistribution), bouncetime=300)
-GPIO.add_event_detect(ACVflow,GPIO.FALLING, callback=lambda x: Counter_Up(ACVDistribution), bouncetime=1)
-GPIO.add_event_detect(ACVstop,GPIO.FALLING, callback=lambda x: Stop_button(ACVDistribution), bouncetime=300)
+ACVstart.when_pressed = lambda x: Start_button(ACVDistribution)
+ACVflow.when_activated = lambda x: Counter_Up(ACVDistribution)
+ACVstop.when_pressed = lambda x: Stop_button(ACVDistribution)
