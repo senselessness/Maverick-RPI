@@ -2,7 +2,7 @@ import time
 import json
 import netifaces
 from gpiozero import Button, LED, DigitalInputDevice, DigitalOutputDevice
-from Display import writewords, LCDoff
+import Display as LCD
 
 #BCM Pin Map To Current Output Pins
 ACVgate = LED(23)
@@ -85,6 +85,10 @@ def Start_button(Variables):
         Variables.StartProcess=True
         if Variables.SystemNumber==0:
             print ('ACV transfer started')
+            LCD.ThreadTemp(0,0,"\x01 ACV Transfer",3)
+            LCD.ThreadTemp(0,1,"\x01 Started",3)
+            LCD.ThreadClearLine(2,3)
+            LCD.ThreadClearLine(3,3)
             acvFlow()
         elif Variables.SystemNumber==1:
             print ('Oil Mix started')
@@ -94,12 +98,16 @@ def Start_button(Variables):
 def Counter_Up(Variables):
     if Variables.StartProcess==True:
         Variables.Counter+=1
+        LCD.writewords(2,2, str(Variables.Counter))
         print('Counter Value = ', Variables.Counter)
         if Variables.Counter>=Variables.Target:
             Variables.StopProcess=True
             Variables.StartProcess=False
             Variables.Total_Product+=1
             print('Product Completed = ', Variables.Total_Product)
+            LCD.ThreadTemp(0,3,"Total Product Completed: " + str(Variables.Total_Product),3)
+            ###
+            LCD.writeLogLine()
             Stop_button(Variables)
 
 #Stop Process
@@ -114,6 +122,10 @@ def Stop_button(Variables):
             Variables.StopProcess=False
             Variables.Counter=0
             print ('Equipment Stopped')
+            LCD.ThreadTemp(0,0,"\x01 Equipment",3)
+            LCD.ThreadTemp(0,1,"\x01 Stopped",3)
+            LCD.ThreadClearLine(2,3)
+            LCD.ThreadClearLine(3,3)
         
 def StopACV():
         ACVpump.off()
@@ -130,6 +142,7 @@ def getanddisplayconnect():
         address = netifaces.ifaddresses('wlan0')
         ip_address = address[netifaces.AF_INET][0]['addr']
         print (ip_address)
+        LCD
     except:
         print("Error Retrieving IP address")
     

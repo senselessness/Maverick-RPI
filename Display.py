@@ -8,6 +8,7 @@ lock=threading.Lock()
 
 xmax = 20
 ymax = 4
+space20="                    "
 entrance = ""
 for b in range (xmax):
     entrance += '\x01' 
@@ -53,7 +54,7 @@ for a in range (ymax):
     writtenlog.append(log("\x00\x01\x00",0,a))
 
 #Adds words written to log
-def lcdlog(x, y, words):
+def _lcdlog(x, y, words):
     if y < ymax:
         writtenlog[y].message = words
         writtenlog[y].xpos = x
@@ -63,18 +64,25 @@ def lcdlog(x, y, words):
 
 #Temporarily writes words to a line. When the designated clock time is up,
 #it frees itself and re-writes with the data logged for the line 
-def tempwrite(x, y, words, clock):
-    clearline(y)
+def _tempwrite(x, y, words, clock):
+    _clearline(y)
     with lock:
         lcd.cursor_pos = (y,x)
         lcd.write_string(words)
     time.sleep(clock)
-    writeLogLine(y)
+    _writeLogLine(y)
     
 #Important words that will be logged on the line
 #For this project, this is IP and port information that will be saved to the
-def writewords(x, y, words):
+def writewordslog(x, y, words):
+    clearline(y)
     lcdlog(x,y,words)
+    with lock:
+        lcd.cursor_pos = (y,x)
+        lcd.write_string(words)
+
+def writewords(x, y, words):
+    clearline(y)
     with lock:
         lcd.cursor_pos = (y,x)
         lcd.write_string(words)
@@ -88,15 +96,32 @@ def writeLog():
 
 #writes a single log line
 def writeLogLine(y):
-        clearline(y)
+        _clearline(y)
         with lock:
             lcd.cursor_pos = (writtenlog[y].ypos,writtenlog[y].xpos)
             lcd.write_string(writtenlog[y].message)
 
+#Write something to the LCD temporarily
+def ThreadTemp(x, y, words, clock):
+    tempwrite=threading.Thread(target=_tempwrite, args = (x,y,words,clock,))
+    tempwrite.start()
+    
+#Write something to the LCD and Log it
+def ThreadClearLine(y, clock):
+    templineclear=threading.Thread(target=_ClearLineTemp, args = (y,clock,))
+    templineclear.start()
+
+#Temporarily Erase Line For Cleaner Messaging                
+def _ClearLineTemp(y, clock):
+    with lock:
+        lcd.cursor_pos = (y,0)
+        lcd.write_string(space20)
+    time.sleep(clock)
+    _writeLogLine(y)
+    
 #clears the line by writing spaces to it
 def clearline(y):
     with lock:
-        space20="                    "
         lcd.cursor_pos = (y,0)
         lcd.write_string(space20)
 
@@ -106,7 +131,7 @@ def LCDoff():
         lcd.close(clear=True)
 
 #Introduction/Start-Up Message
-def introduction():
+def _introduction():
     with lock:     
         lcd.write_string(entrance)
         lcd.write_string("\x01Welcome To\n\r\x01Mavrik Bottling")
@@ -119,19 +144,16 @@ def introduction():
         lcd.cursor_pos = (0,0)
         time.sleep(3)
 
-
-tempwrite0=threading.Thread(target=introduction)
-tempwrite1=threading.Thread(target=tempwrite, args = (0,0,"I Love My GF",5,))
-tempwrite2=threading.Thread(target=tempwrite, args = (0,1,"I Love My GF",7,))
-#Starts then waits for introduction to be completed before stating other threads.
-tempwrite0.start()
-tempwrite0.join()
-#Temp test lines
-tempwrite1.start()
-tempwrite2.start()
-
-
-
+_introduction()
+ThreadLog(0,0,"\x01 Access settings")
+ThreadLog(0,1,"\x01 Type in browser")
+ThreadLog(0,2,"\x01 10.0.0.144:8000")
+ThreadLog(0,3,"\x01 While on Wi-Fi")
+time.sleep(8)
+ThreadTemp(0,0,"Machine Started",2)
+ThreadTemp(0,1,"\x01 I love my GF \x01",4)
+ThreadTemp(0,2,"\x00 She is awesome \x00",4)
+ClearLineTemp(3,4)
 #Temp clear
-time.sleep(10)
+time.sleep(7)
 LCDoff()
