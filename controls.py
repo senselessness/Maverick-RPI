@@ -3,6 +3,7 @@ import json
 import netifaces
 from gpiozero import Button, LED, DigitalInputDevice, DigitalOutputDevice
 import Display as LCD
+import Relay_Hat as RH
 
 #BCM Pin Map To Current Output Pins
 ACVgate = LED(23)
@@ -13,7 +14,12 @@ ACVstart = Button(17)
 ACVflow = DigitalInputDevice(27)
 ACVstop = Button(22)
 
+#Relay Addresses
+ACVgateAddress=1
+ACVpumpAddress=2
+
 #Log Variables
+assigned_port=8080
 Access_Info=""
 
 JsonFile="Data.json"
@@ -71,6 +77,8 @@ except:
 #ACV Dispense Control
 #Add event must be within the function loop for the callback to work
 def acvFlow():
+        RH.relayOn(ACVgateAddress)
+        RH.relayOn(ACVpumpAddress)
         ACVpump.on()
         ACVgate.on()
 
@@ -85,10 +93,10 @@ def Start_button(Variables):
         Variables.StartProcess=True
         if Variables.SystemNumber==0:
             print ('ACV transfer started')
-            LCD.ThreadTemp(0,0,"\x01 ACV Transfer",3)
-            LCD.ThreadTemp(0,1,"\x01 Started",3)
-            LCD.ThreadClearLine(2,3)
-            LCD.ThreadClearLine(3,3)
+            LCD.writewords(0,0,"\x01 ACV Transfer")
+            LCD.writewords(0,1,"\x01 Started")
+            LCD.writewords(0,2, "\x01 Target: " + str(Variables.Target))
+            LCD.clearline(3)
             acvFlow()
         elif Variables.SystemNumber==1:
             print ('Oil Mix started')
@@ -98,16 +106,14 @@ def Start_button(Variables):
 def Counter_Up(Variables):
     if Variables.StartProcess==True:
         Variables.Counter+=1
-        LCD.writewords(2,2, str(Variables.Counter))
+        LCD.writewords(0,3, "\x01 Count: " + str(Variables.Counter))
         print('Counter Value = ', Variables.Counter)
         if Variables.Counter>=Variables.Target:
             Variables.StopProcess=True
             Variables.StartProcess=False
             Variables.Total_Product+=1
             print('Product Completed = ', Variables.Total_Product)
-            LCD.ThreadTemp(0,3,"Total Product Completed: " + str(Variables.Total_Product),3)
-            ###
-            LCD.writeLogLine()
+            LCD.writewords(0,3,"\x01 Completed: " + str(Variables.Total_Product))
             Stop_button(Variables)
 
 #Stop Process
@@ -122,12 +128,14 @@ def Stop_button(Variables):
             Variables.StopProcess=False
             Variables.Counter=0
             print ('Equipment Stopped')
-            LCD.ThreadTemp(0,0,"\x01 Equipment",3)
-            LCD.ThreadTemp(0,1,"\x01 Stopped",3)
+            LCD.writewords(0,0,"\x01 Equipment")
+            LCD.writewords(0,1,"\x01 Stopped")
             LCD.ThreadClearLine(2,3)
-            LCD.ThreadClearLine(3,3)
+            LCD.ThreadWriteLogWithDelay(3)
         
 def StopACV():
+        RH.relayOff(ACVgateAddress)
+        RH.relayOff(ACVpumpAddress)
         ACVpump.off()
         ACVgate.off()
     
@@ -135,17 +143,27 @@ def StopOil():
     print('Oil Does Nothing At The Moment')
     
 def peripherialsoff():
-    LCDoff()
+    LCD.LCDoff()
+    RH.relayAlloff()
 
 def getanddisplayconnect():
     try:
         address = netifaces.ifaddresses('wlan0')
         ip_address = address[netifaces.AF_INET][0]['addr']
+        Access_Info= str(ip_address)+":"+str(assigned_port)
         print (ip_address)
-        LCD
+        LCD.writewordslog(0,0,"\x01 Access settings")
+        LCD.writewordslog(0,1,"\x01 Type in browser")
+        LCD.writewordslog(0,2,"\x01 "+ Access_Info)
+        LCD.writewordslog(0,3,"\x01 While on Wi-Fi")
     except:
         print("Error Retrieving IP address")
-    
+        LCD.writewordslog(0,0,"\x01 Device Not")
+        LCD.writewordslog(0,1,"\x01 Able To")
+        LCD.writewordslog(0,2,"\x01 Access")
+        LCD.writewordslog(0,3,"\x01 Wi-Fi")
+
+
 getanddisplayconnect()
 
 ACVstart.when_pressed = lambda x: Start_button(ACVDistribution)

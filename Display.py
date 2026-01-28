@@ -65,18 +65,18 @@ def _lcdlog(x, y, words):
 #Temporarily writes words to a line. When the designated clock time is up,
 #it frees itself and re-writes with the data logged for the line 
 def _tempwrite(x, y, words, clock):
-    _clearline(y)
+    clearline(y)
     with lock:
         lcd.cursor_pos = (y,x)
         lcd.write_string(words)
     time.sleep(clock)
-    _writeLogLine(y)
+    writeLogLine(y)
     
 #Important words that will be logged on the line
 #For this project, this is IP and port information that will be saved to the
 def writewordslog(x, y, words):
     clearline(y)
-    lcdlog(x,y,words)
+    _lcdlog(x,y,words)
     with lock:
         lcd.cursor_pos = (y,x)
         lcd.write_string(words)
@@ -94,9 +94,17 @@ def writeLog():
             lcd.cursor_pos = (writtenlog[a].ypos,writtenlog[a].xpos)
             lcd.write_string(writtenlog[a].message)
 
+#writes entire log instead of just a line
+def _writeDelayLog(clock):
+    time.sleep(clock)
+    with lock:
+        for a in range(len(writtenlog)):
+            lcd.cursor_pos = (writtenlog[a].ypos,writtenlog[a].xpos)
+            lcd.write_string(writtenlog[a].message)
+
 #writes a single log line
 def writeLogLine(y):
-        _clearline(y)
+        clearline(y)
         with lock:
             lcd.cursor_pos = (writtenlog[y].ypos,writtenlog[y].xpos)
             lcd.write_string(writtenlog[y].message)
@@ -111,13 +119,18 @@ def ThreadClearLine(y, clock):
     templineclear=threading.Thread(target=_ClearLineTemp, args = (y,clock,))
     templineclear.start()
 
+#write log with delay
+def ThreadWriteLogWithDelay(clock):
+    delaylog=threading.Thread(target=_writeDelayLog, args = (clock,))
+    delaylog.start()
+
 #Temporarily Erase Line For Cleaner Messaging                
 def _ClearLineTemp(y, clock):
     with lock:
         lcd.cursor_pos = (y,0)
         lcd.write_string(space20)
     time.sleep(clock)
-    _writeLogLine(y)
+    writeLogLine(y)
     
 #clears the line by writing spaces to it
 def clearline(y):
@@ -145,15 +158,7 @@ def _introduction():
         time.sleep(3)
 
 _introduction()
-ThreadLog(0,0,"\x01 Access settings")
-ThreadLog(0,1,"\x01 Type in browser")
-ThreadLog(0,2,"\x01 10.0.0.144:8000")
-ThreadLog(0,3,"\x01 While on Wi-Fi")
-time.sleep(8)
-ThreadTemp(0,0,"Machine Started",2)
-ThreadTemp(0,1,"\x01 I love my GF \x01",4)
-ThreadTemp(0,2,"\x00 She is awesome \x00",4)
-ClearLineTemp(3,4)
-#Temp clear
-time.sleep(7)
-LCDoff()
+
+
+if __name__=='__main__':
+    LCDoff()

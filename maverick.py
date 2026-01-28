@@ -8,7 +8,7 @@ import signal
 app = Flask(__name__)
 
 Shutdown = C.Button(26)
-assigned_port=8080
+assigned_port=C.assigned_port
 
 #Opens html script on local host.
 @app.route('/', methods=['GET', 'POST'])
@@ -47,16 +47,15 @@ def acvdata():
 def Shutdown_Prep():
         C.writeControls()
         try:
-            print("Exiting by Website\nReady For Power Off")
+            print("Ready For Power Off")
             own_pid=os.getpid()
             os.kill(own_pid, signal.SIGINT)
             C.peripherialsoff()
+            sys.exit("Exiting by button\nReady For Power Off")
             #os.system("sudo shutdown -h now")
             
         except:
-            C.peripherialsoff()
-            sys.exit("Exiting by button\nReady For Power Off")
-            #os.system("sudo shutdown -h now")
+           print("Unexpected Fail")
 
 Shutdown.when_pressed = Shutdown_Prep
 
