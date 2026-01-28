@@ -7,3 +7,5 @@ Currtenly Only Rough Layout For Apple Cider Vinegar Distribution System
 First Commit Python 3.13
 
 Data storage as JSON
+
+Still needs Production Enviorment - Not super neccessarry
