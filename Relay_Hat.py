@@ -20,6 +20,7 @@ def relayAllon():
 def relayAlloff():
     for a in range(1,5):
         relay_hat.write_byte_data(relay_address, a, off)
+        
 
 if __name__=='__main__':
     relayAlloff()

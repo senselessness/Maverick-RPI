@@ -1,10 +1,5 @@
 from RPLCD.i2c import CharLCD
 import time
-import threading
-#Avoid calling functions with lock() underneath a function that already is using with lock()
-#Doing so will freeze the program
-
-lock=threading.Lock()
 
 xmax = 20
 ymax = 4
@@ -37,115 +32,114 @@ heart = (
     0b00000
     )
 
+arrow_up = (
+    0b00100,
+    0b01110,
+    0b11111,
+    0b11111,
+    0b00100,
+    0b00100,
+    0b00100,
+    0b00000
+    )
+
+#Arrow Down Symbol
+arrow_down = (
+    0b00000,
+    0b00100,
+    0b00100,
+    0b00100,
+    0b11111,
+    0b11111,
+    0b01110,
+    0b00100
+    )
+
+#Arrow Right Symbol
+arrow_right = (
+	0b10000,
+    0b11000,
+    0b11110,
+    0b11111,
+    0b11111,
+    0b11110,
+    0b11000,
+    0b10000
+    )
+#Arrow Left Symbol
+arrow_left = (
+	0b00001,
+    0b00011,
+    0b01111,
+    0b11111,
+    0b11111,
+    0b01111,
+    0b00011,
+    0b00001
+    )   
+    
+symb_smile="\x00"
+symb_heart="\x01"
+symb_up="\x02"
+symb_down="\x03"
+symb_right="\x04"
+symb_left = "\x05"
+
 lcd = CharLCD('PCF8574', 0x27)
 lcd.create_char(0, smiley)
 lcd.create_char(1, heart)
+lcd.create_char(2, arrow_up)
+lcd.create_char(3, arrow_down)
+lcd.create_char(4, arrow_right)
+lcd.create_char(5, arrow_left)
 
-#Establishes logs for stored data
-class log:
-    def __init__(self, message, xpos, ypos):
-        self.message=message
-        self.xpos=xpos
-        self.ypos=ypos
 
-#Creates list of logs
-writtenlog = []
-for a in range (ymax):
-    writtenlog.append(log("\x00\x01\x00",0,a))
+def writewords(x, y, words, clear):
+	if clear:
+		clearline(y)
+	
+	lcd.cursor_pos = (y,x)
+	lcd.write_string(words)
 
-#Adds words written to log
-def _lcdlog(x, y, words):
-    if y < ymax:
-        writtenlog[y].message = words
-        writtenlog[y].xpos = x
-    else:
-        print("y value out of range")
-        
+def writewordswithnav(x, y, words, clear):
+	if clear:
+		clearline(y)
+	#Add Navigation Bar to String
+	if y == 0:
+		words = symb_right + words
+	elif y==1:
+		words = symb_up + words
+	elif y==2:
+		words = " " + words
+	elif y==3:
+		words = symb_down + words
+	else:
+		print("LCD y error")
+	
+	lcd.cursor_pos = (y,x)
+	lcd.write_string(words)
+	LCDsleep()
 
-#Temporarily writes words to a line. When the designated clock time is up,
-#it frees itself and re-writes with the data logged for the line 
-def _tempwrite(x, y, words, clock):
-    clearline(y)
-    with lock:
-        lcd.cursor_pos = (y,x)
-        lcd.write_string(words)
-    time.sleep(clock)
-    writeLogLine(y)
-    
-#Important words that will be logged on the line
-#For this project, this is IP and port information that will be saved to the
-def writewordslog(x, y, words):
-    clearline(y)
-    _lcdlog(x,y,words)
-    with lock:
-        lcd.cursor_pos = (y,x)
-        lcd.write_string(words)
-
-def writewords(x, y, words):
-    clearline(y)
-    with lock:
-        lcd.cursor_pos = (y,x)
-        lcd.write_string(words)
-
-#writes entire log instead of just a line
-def writeLog():
-    with lock:
-        for a in range(len(writtenlog)):
-            lcd.cursor_pos = (writtenlog[a].ypos,writtenlog[a].xpos)
-            lcd.write_string(writtenlog[a].message)
-
-#writes entire log instead of just a line
-def _writeDelayLog(clock):
-    time.sleep(clock)
-    with lock:
-        for a in range(len(writtenlog)):
-            lcd.cursor_pos = (writtenlog[a].ypos,writtenlog[a].xpos)
-            lcd.write_string(writtenlog[a].message)
-
-#writes a single log line
-def writeLogLine(y):
-        clearline(y)
-        with lock:
-            lcd.cursor_pos = (writtenlog[y].ypos,writtenlog[y].xpos)
-            lcd.write_string(writtenlog[y].message)
-
-#Write something to the LCD temporarily
-def ThreadTemp(x, y, words, clock):
-    tempwrite=threading.Thread(target=_tempwrite, args = (x,y,words,clock,))
-    tempwrite.start()
-    
-#Write something to the LCD and Log it
-def ThreadClearLine(y, clock):
-    templineclear=threading.Thread(target=_ClearLineTemp, args = (y,clock,))
-    templineclear.start()
-
-#write log with delay
-def ThreadWriteLogWithDelay(clock):
-    delaylog=threading.Thread(target=_writeDelayLog, args = (clock,))
-    delaylog.start()
-
-#Temporarily Erase Line For Cleaner Messaging                
-def _ClearLineTemp(y, clock):
-    with lock:
-        lcd.cursor_pos = (y,0)
-        lcd.write_string(space20)
-    time.sleep(clock)
-    writeLogLine(y)
-    
 #clears the line by writing spaces to it
 def clearline(y):
-    with lock:
-        lcd.cursor_pos = (y,0)
-        lcd.write_string(space20)
+     lcd.cursor_pos = (y,0)
+     lcd.write_string(space20)
+     LCDsleep()
 
 #clears LCD screen of any characters
 def LCDoff():
-    with lock:
-        lcd.close(clear=True)
+	lcd.close(clear=True)
+
+#Stops Communication        
+def LCDclose():
+	lcd.close(clear=False)
+
+#Required sleep intervval for multiple writes
+def LCDsleep():
+	time.sleep(.1)
 
 #Introduction/Start-Up Message
-def _introduction():
-    with lock:     
+def _introduction():   
         lcd.write_string(entrance)
         lcd.write_string("\x01Welcome To\n\r\x01Mavrik Bottling")
         lcd.cursor_pos = (1,19)
@@ -155,10 +149,43 @@ def _introduction():
         lcd.cursor_pos = (3,0)
         lcd.write_string(entrance)
         lcd.cursor_pos = (0,0)
-        time.sleep(3)
+        time.sleep(5)
+       
 
-_introduction()
+def navigationbar():
+	lcd.cursor_pos = (0,0)
+	lcd.write_string("\x04")
+	lcd.cursor_pos = (1,0)
+	lcd.write_string("\x02")
+	lcd.cursor_pos = (3,0)
+	lcd.write_string("\x03")
+	lcd.cursor_pos = (0,0)
+	LCDsleep()
+	
 
+def valueline(valuename, value):
+	lcd.cursor_pos = (1,0)
+	lcd.write_string(f"{valuename}: {value}")
+	
+	
+def valuechange(valuename, value):
+	lcd.cursor_pos = (0,0)
+	lcd.write_string("\x02")
+	valueline(valuename, value)
+	lcd.cursor_pos = (2,0)
+	lcd.write_string("\x04")
+	lcd.cursor_pos = (3,0)
+	lcd.write_string("\x03")
+	lcd.cursor_pos = (0,0)
+	lcd.close()
+
+try:
+	_introduction()
+	lcd.clear()
+	navigationbar()
+except:
+	print("LCD Error")
 
 if __name__=='__main__':
     LCDoff()
+    
