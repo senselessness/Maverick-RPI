@@ -76,7 +76,19 @@ arrow_left = (
     0b01111,
     0b00011,
     0b00001
-    )   
+    )
+
+#Chevron Symbol
+chevron = (
+	0b00100,
+    0b01010,
+    0b10001,
+    0b10001,
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00000
+    )      
     
 symb_smile="\x00"
 symb_heart="\x01"
@@ -84,6 +96,7 @@ symb_up="\x02"
 symb_down="\x03"
 symb_right="\x04"
 symb_left = "\x05"
+symb_chev = "\x06"
 
 lcd = CharLCD('PCF8574', 0x27)
 lcd.create_char(0, smiley)
@@ -92,6 +105,7 @@ lcd.create_char(2, arrow_up)
 lcd.create_char(3, arrow_down)
 lcd.create_char(4, arrow_right)
 lcd.create_char(5, arrow_left)
+lcd.create_char(6, chevron)
 
 
 def writewords(x, y, words, clear):
